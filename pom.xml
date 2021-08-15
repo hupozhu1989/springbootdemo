@@ -28,6 +28,14 @@
     </dependencies>
 
     <build>
+        <!-- 打成的jar包的名字 -->
+        <finalName>springbootdemo</finalName>
+        <resources>
+            <!-- 把resources目录下的文件打包进jar中 -->
+            <resource>
+                <directory>src/main/resources</directory>
+            </resource>
+        </resources>
         <plugins>
             <!-- 设置编译项目jdk版本与编码 -->
             <plugin>

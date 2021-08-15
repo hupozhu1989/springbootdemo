@@ -150,7 +150,7 @@ spec:
 
 ## 二、
 
-### 1. deployment部署
+### 1. deployment
 
 ```shell
 #准备工作
@@ -180,9 +180,156 @@ kubectl rollout undo deployment nginx-deploy
 kubectl rollout undo deployment nginx-deploy --to-revision=1
 #弹性伸缩
 kubectl scale deployment nginx-deploy --replicas=3
-
-
 ```
+
+### 2. StatefulSet
+
+statefulset.yaml
+
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx
+  labels: 
+    app: nginx
+spec:
+  ports: 
+  - port: 80
+    name: web
+  #无头service
+  clusterIP: None
+  selector: 
+    app: nginx
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: nginx-statefulset
+  namespace: default
+spec:
+  serviceName: nginx
+  replicas: 3 
+  selector: 
+    matchLabels:
+      app: nginx
+  template:
+    metadata:
+      labels: 
+        app: nginx
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:1.20.0
+        ports:
+        - containerPort: 80
+```
+
+```shell
+kubectl get statefulset
+kubectl delete statefulset [set名字]
+kubectl delete statefulset --all
+```
+
+### 3. DaemonSet
+
+daemonset.yaml
+
+```yaml
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: nginx-daemonset
+  labels: 
+    app: filebeat
+spec:
+  selector:
+    matchLabels:
+      app: filebeat
+  template:
+    metadata:
+      labels: 
+        app: filebeat
+    spec:
+      containers:
+      - name: logs
+        image: nginx:1.20.0
+        ports:
+        - containerPort: 80
+        volumeMounts:
+        - name: varlog
+          mountPath: /tmp/log
+      volumes:
+      - name: varlog
+        hostPath:
+          path: /var/log
+```
+
+```shell
+kubectl exec -it nginx-daemonset-9cs94 bash
+ls /tmp/log
+exit
+kubectl get daemonset
+```
+
+### 4. Job
+
+job.yaml
+
+```yaml
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: pi-job
+  labels: 
+    app: filebeat
+spec:
+  template:
+    spec:
+      containers:
+      - name: pi
+        image: perl
+        command: ["perl", "-Mbignum=bpi", "-wle", "print bpi(2000)"]
+      restartPolicy: Never
+  backoffLimit: 5
+```
+
+```shell
+kubectl get job
+kubectl logs -f pi-job-5nwf6
+```
+
+### 5. CronJob
+
+cronjob.yaml
+
+```yaml
+apiVersion: batch/v1beta1
+kind: CronJob
+metadata:
+  name: busybox-cronjob
+spec:
+  schedule: "*/1 * * * *"
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: busybox
+            image: busybox
+            args:
+            - /bin/sh
+            - -c
+            - date; echo Hello from the Kubernetes cluster
+          restartPolicy: OnFailure
+```
+
+```shell
+kubectl get cronjob
+kubectl logs -f busybox-cronjob-1628949240-zz29x
+```
+
+
 
 
 

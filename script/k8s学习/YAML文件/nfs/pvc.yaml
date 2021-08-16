@@ -1,7 +1,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: nginx-dep1
+  name: nginx-pvc
 spec:
   replicas: 3
   selector:
@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
       - name: nginx
-        image: nginx
+        image: nginx:1.20.0
         volumeMounts:
         - name: wwwroot
           mountPath: /usr/share/nginx/html
@@ -24,9 +24,7 @@ spec:
       - name: wwwroot
         persistentVolumeClaim:
           claimName: my-pvc
-
 ---
-
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
@@ -36,4 +34,4 @@ spec:
     - ReadWriteMany
   resources:
     requests:
-      storage: 5Gi
+      storage: 2Gi

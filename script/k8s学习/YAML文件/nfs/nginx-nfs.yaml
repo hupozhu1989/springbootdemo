@@ -1,7 +1,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: nginx-dep1
+  name: nginx-nfs
 spec:
   replicas: 1
   selector:
@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
       - name: nginx
-        image: nginx
+        image: nginx:1.20.0
         volumeMounts:
         - name: wwwroot
           mountPath: /usr/share/nginx/html
@@ -23,5 +23,5 @@ spec:
       volumes:
         - name: wwwroot
           nfs:
-            server: 192.168.44.134
+            server: 192.168.31.100
             path: /data/nfs

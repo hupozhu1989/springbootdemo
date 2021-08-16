@@ -4,9 +4,9 @@ metadata:
   name: my-pv
 spec:
   capacity:
-    storage: 5Gi
+    storage: 2Gi
   accessModes:
     - ReadWriteMany
   nfs:
-    path: /k8s/nfs
-    server: 192.168.44.134
+    path: /data/nfs
+    server: 192.168.31.100

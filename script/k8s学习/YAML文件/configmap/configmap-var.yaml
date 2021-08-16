@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: Pod
 metadata:
-  name: mypod-var
+  name: cm-var-pod
 spec:
   containers:
     - name: busybox
@@ -11,11 +11,11 @@ spec:
         - name: LEVEL
           valueFrom:
             configMapKeyRef:
-              name: myconfig
+              name: myconfigmap
               key: special.level
         - name: TYPE
           valueFrom:
             configMapKeyRef:
-              name: myconfig
+              name: myconfigmap
               key: special.type
   restartPolicy: Never

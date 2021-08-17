@@ -21,7 +21,7 @@ cfssl gencert -ca=ca.pem -ca-key=ca-key.pem -config=ca-config.json -profile=kube
 kubectl config set-cluster kubernetes \
   --certificate-authority=ca.pem \
   --embed-certs=true \
-  --server=https://192.168.31.63:6443 \
+  --server=https://192.168.31.61:6443 \
   --kubeconfig=mary-kubeconfig
   
 kubectl config set-credentials mary \

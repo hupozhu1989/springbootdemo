@@ -12,7 +12,7 @@ metadata:
 spec:
   containers:
   - name: mytomcat 
-    image: tomcat 
+    image: tomcat:8 
     ports:
     - containerPort: 8000
 ```
@@ -29,7 +29,7 @@ metadata:
 spec:
   containers:
   - name: tomcat 
-    image: tomcat 
+    image: tomcat:8 
     ports:
     - containerPort: 8080
   - name: redis 
@@ -156,6 +156,8 @@ spec:
 #准备工作
 docker pull nginx:1.18.0
 docker pull nginx:1.20.0
+docker pull tomcat:8
+docker pull tomcat:8.5
 #第一步 导出deploy的yaml文件
 kubectl create deployment nginx-deploy --image=nginx:1.18.0 --dry-run=client -o yaml > deploy01.yaml
 #第二步 使用yaml部署
@@ -534,11 +536,107 @@ kubectl logs -f cm-var-pod
 
 ## 四、集群安全机制
 
-kubectl get **ns**
+```shell
+#1.创建命名空间
+kubectl create ns roledemo
+kubectl get ns
+#2.在新创建的命名空间创建pod
+kubectl run nginx --image=nginx:1.18.0 -n roledemo
+#3.创建角色
+vim rbac-role.yaml
+kubectl apply -f rbac-role.yaml
+kubectl get role -n roledemo
+#4.角色绑定
+vim rbac-rolebinding.yaml
+kubectl apply -f rbac-rolebinding.yaml
+kubectl get role,rolebinding -n roledemo
+#5.使用证书识别身份
+mkdir mary
+cd mary
+#复制相关证书到当前目录,只有二进制搭建k8s才有这些证书
+cp /root/TLS/k8s/ca* ./
+#rabc-user.sh放在mary目录下
+bash rabc-user.sh
+#新生成的文件mary-kubeconfig
+cat mary-kubeconfig
+kubectl get pods -n roledemo
+cat mary-kubeconfig
+```
 
+rbac-role.yaml
 
+```yaml
+kind: Role
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  namespace: roledemo
+  name: pod-reader
+rules:
+- apiGroups: [""] # "" indicates the core API group
+  resources: ["pods"]
+  verbs: ["get", "watch", "list"]
+```
 
+rbac-rolebinding.yaml
 
+```yaml
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: read-pods
+  namespace: roledemo
+subjects:
+- kind: User
+  name: mary # Name is case sensitive
+  apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: Role #this must be Role or ClusterRole
+  name: pod-reader # this must match the name of the Role or ClusterRole you wish to bind to
+  apiGroup: rbac.authorization.k8s.io
+```
+
+rabc-user.sh
+
+```shell
+cat > mary-csr.json <<EOF
+{
+  "CN": "mary",
+  "hosts": [],
+  "key": {
+    "algo": "rsa",
+    "size": 2048
+  },
+  "names": [
+    {
+      "C": "CN",
+      "L": "BeiJing",
+      "ST": "BeiJing"
+    }
+  ]
+}
+EOF
+
+cfssl gencert -ca=ca.pem -ca-key=ca-key.pem -config=ca-config.json -profile=kubernetes mary-csr.json | cfssljson -bare mary 
+
+kubectl config set-cluster kubernetes \
+  --certificate-authority=ca.pem \
+  --embed-certs=true \
+  --server=https://192.168.31.61:6443 \
+  --kubeconfig=mary-kubeconfig
+  
+kubectl config set-credentials mary \
+  --client-key=mary-key.pem \
+  --client-certificate=mary.pem \
+  --embed-certs=true \
+  --kubeconfig=mary-kubeconfig
+
+kubectl config set-context default \
+  --cluster=kubernetes \
+  --user=mary \
+  --kubeconfig=mary-kubeconfig
+
+kubectl config use-context default --kubeconfig=mary-kubeconfig
+```
 
 ## 五、Ingress
 
@@ -547,7 +645,6 @@ kubectl get **ns**
 ```shell
 kubectl create deployment nginx-web --image=nginx:1.18.0
 kubectl expose deployment nginx-web --port=80 --target-port=80 --type=NodePort
-
 ```
 
 ### ②部署ingress-controller
@@ -952,8 +1049,6 @@ helm install chartdemo mychart/
 #4.应用升级
 helm upgrade chart [名称]
 ```
-
-
 
 ## 七、持久化存储
 
@@ -1519,7 +1614,7 @@ deployment.apps/grafana-core created
 ###### grafana-ing.yaml
 
 ```yaml
-apiVersion: networking.k8s.io/v1
+apiVersion: extensions/v1beta1
 kind: Ingress
 metadata:
    name: grafana
@@ -1573,34 +1668,11 @@ service/grafana created
 kubectl get pods -n kube-system -o wide
 kubectl get svc -n kube-system -o wide
 #查看grafana和prometheus的CLUSTER-IP和PORT(S)
+#grafana访问页面
 http://192.168.31.61:31269/login    admin/admin
-#配置数据源,Data Sources->Add->name=mydb,type=Prometheus,url=http://10.102.233.226:9090
-#设置显示数据模板:Dashboards->import->315->mydb
+#prometheus访问页面
+http://192.168.31.61:30003/graph
+#配置数据源,Data Sources -> Add -> name=mydb,type=Prometheus,url=http://10.102.233.226:9090
+#设置显示数据模板:Dashboards -> import -> 315 -> Prometheus:mydb
 ```
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
